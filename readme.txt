@@ -1,6 +1,6 @@
 === Plugin Name ===
 Contributors: tvbookmark
-Tags: WebTV, Videos, TV, Channels, Shows, Episodes, News, ABC, CBS, FOX, MSNBC, CNN, Internetfernsehen, IPTV, ARD, ZDF, RTL, Sat1, Pro7, Sendungen, Fernsehen
+Tags: WebTV, Videos, TV, Channels, Shows, Episodes, Series, Documentaries, News, ABC, CBS, FOX, MSNBC, CNN, Internetfernsehen, IPTV, ARD, ZDF, RTL, Sat1, Pro7, Sendungen, Fernsehen, Widget, Sidebar, Mediatheken
 Requires at least: 2.8
 Tested up to: 3.1.3
 Stable tag: 4.3
@@ -15,10 +15,10 @@ This widget displays a list with links to the latest videos from TV channels and
 
 ATTENTION! This plugin uses the WP_Widget class of WordPress introduced in v. 2.8, so it will not work in earlier WordPress versions.
 
-1. Unzip downloaded `tvbookmark.zip` file
-2. Upload resulting `tvbookmark` folder to the `/wp-content/plugins' directory
+1. Unzip downloaded `web-tv-videos-widget.zip` file
+2. Upload resulting `web-tv-videos-widget` folder to the `/wp-content/plugins' directory
 3. Activate the plugin through the `Plugins` menu in WordPress
-4. Add the plugin (widget) to the chosen widget area and configure your plugin in the `Design -> Widgets` menu
+4. Add the plugin (widget) to the chosen widget area and configure your plugin in the `Appearance -> Widgets` menu
 
 == Frequently Asked Questions ==
 
@@ -39,6 +39,9 @@ No, but if you like it, please consider to activate the "Search on TVBookmark" l
 5. Options page to configure the plugin
 
 == Changelog ==
+
+= 1.1 =
+* Added support for categories (e.g. only show News or Sports videos)
 
 = 1.0 =
 * Initial release version

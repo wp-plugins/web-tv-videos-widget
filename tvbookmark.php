@@ -5,7 +5,7 @@
 Plugin name:  Web-TV Videos Widget
 Plugin URI:   http://www.tvbookmark.info/articles/?page_id=334
 Description:  A widget to display titles and links to the latest videos from TV channels and newssites (de/en) about a self-chosen topic in the sidebar.
-Version:      1.0
+Version:      1.1
 Author:       Holger Drewes
 Author URI:   http://www.tvbookmark.info
 
@@ -59,7 +59,7 @@ class TVBookmarkWidget extends WP_Widget {
 
 
 
-	function renewTVBookmarkData($search_term, $whole_episodes, $language, $rows) {
+	function renewTVBookmarkData($search_term, $whole_episodes, $category, $language, $rows) {
 
 		global $wpdb;		
 		$table_name = $wpdb->prefix.'tvbookmark';
@@ -83,7 +83,15 @@ class TVBookmarkWidget extends WP_Widget {
 			$wp = '0';
 		}
 
-		$url = $this->api_url.'search?key='.get_option('api_user').'&q='.$search_term.'&wp='.$wp.'&rows='.$rows.'&lang='.$language.'&format=xml';
+		$cat_add = '';
+		if(mb_strlen($category) == 1) {
+			$cat_add = '&mc='.$category;
+		} else if(mb_strlen($category) == 2) {
+			$cat_add  = '&mc='.mb_substr($category, 0, 1);
+			$cat_add .= '&c='.mb_substr($category, 1, 1);
+		}
+
+		$url = $this->api_url.'search?key='.get_option('api_user').'&q='.$search_term.'&wp='.$wp.$cat_add.'&rows='.$rows.'&lang='.$language.'&format=xml';
 		$xml = wp_remote_fopen($url);							
 		
 		if(!$xml || mb_substr($xml, 0, 5) == 'ERROR') return false;	
@@ -130,11 +138,12 @@ class TVBookmarkWidget extends WP_Widget {
 		$title = apply_filters('widget_title', $instance['title']);
 		$search_term = $instance['search_term'];
 		$whole_episodes = $instance['whole_episodes'];	
+		$category = $instance['category'];
 		$title = str_replace('[SEARCHTERM]', $search_term, $title);
 		$language = $instance['language'];		
 		$rows = $instance['rows'];
 
-		$this->renewTVBookmarkData($search_term, $whole_episodes, $language, $rows);
+		$this->renewTVBookmarkData($search_term, $whole_episodes, $category, $language, $rows);
 
 		echo $before_widget;
 		
@@ -175,8 +184,16 @@ class TVBookmarkWidget extends WP_Widget {
 			$wp = '0';
       }
 		
+		$cat_add = '';
+      if(mb_strlen($category) == 1) {
+         $cat_add = '&mc='.$category;
+      } else if(mb_strlen($category) == 2) {
+         $cat_add  = '&mc='.mb_substr($category, 0, 1);
+         $cat_add .= '&c='.mb_substr($category, 1, 1);
+      }
+
 		if($instance['show_search_url']) {
-			$search_url = esc_url($search_base_url.'/search?q='.$search_term.'&wp='.$wp.'&lang='.$language);
+			$search_url = esc_url($search_base_url.'/search?q='.$search_term.'&wp='.$wp.$cat_add.'&lang='.$language);
 			echo '<div style="margin-top:5px;font-size:10px;">'.$search_text.' <a href="'.$search_url.'" target="_blank">TVBookmark</a></div>';
 		}
 
@@ -185,10 +202,83 @@ class TVBookmarkWidget extends WP_Widget {
 
 
 
+	function getCategorySelectBox($category) {
+
+		/* Read categories from API */
+		$options = array();
+		$options[] = array('ALL', 'All Categories');
+		
+		$url = $this->api_url.'categories?key='.get_option('api_user').'&format=xml';
+      $xml = wp_remote_fopen($url);
+
+      if(!$xml || mb_substr($xml, 0, 5) == 'ERROR') return false;
+
+      $dom = new DOMDocument();
+      $dom->loadXML($xml);
+
+      $xp = new domxpath($dom);
+
+      $main_cats = $xp->query("/tvbookmark/results/main_category");
+      if(count($main_cats) == 0) return false;
+
+      foreach($main_cats as $main_cat) {
+         $main_cat_li = $xp->query('./letter_ident', $main_cat)->item(0)->nodeValue;
+			$name = $xp->query('./name/en', $main_cat)->item(0)->nodeValue;
+			
+			$options[] = array($main_cat_li, '--- '.$name.' ---');
+
+			/* Read out categories for main_category */
+			$url = $this->api_url.'categories?key='.get_option('api_user').'&mc='.$main_cat_li.'&format=xml';
+      	$xml = wp_remote_fopen($url);
+
+      	if(!$xml || mb_substr($xml, 0, 5) == 'ERROR') return false;
+
+      	$dom2 = new DOMDocument();
+      	$dom2->loadXML($xml);
+
+      	$xp2 = new domxpath($dom2);
+
+      	$cats = $xp2->query("/tvbookmark/results/category");
+      	if(count($cats) == 0) return false;
+
+			foreach($cats as $cat) {
+         	$cat_li = $xp2->query('./letter_ident', $cat)->item(0)->nodeValue;
+         	$cat_name = $xp2->query('./name/en', $cat)->item(0)->nodeValue;
+         
+         	$options[] = array($main_cat_li.$cat_li, $cat_name);
+			}
+
+		}
+
+		$sel_box = '';
+
+		$sel_box .= '<select id="'.$this->get_field_id('category').'" name="'.$this->get_field_name('category').'">';
+
+      foreach($options as $option) {
+         $sel_box .= '<option value="'.$option[0].'" ';
+
+         if($option[0] == $category) {
+            $sel_box .= 'selected';
+         }
+         $sel_box .= '>'.htmlspecialchars($option[1], ENT_QUOTES, 'UTF-8').'</option>';
+      }
+      $sel_box .= '</select>';
+
+		return $sel_box;
+	}
+
+
+
 	function update($new_instance, $old_instance) {
 
 		$instance['title'] = strip_tags($new_instance['title']);
 		$instance['search_term'] = strip_tags($new_instance['search_term']);
+		
+		if($new_instance['category']) {
+			$instance['category'] = strip_tags($new_instance['category']);
+		} else {
+			$instance['category'] = $old_instance['category'];
+		}
 		$instance['language'] = $new_instance['language'];
 		$instance['rows'] = $new_instance['rows'];
 		$instance['new_tab'] = $new_instance['new_tab'];
@@ -204,7 +294,7 @@ class TVBookmarkWidget extends WP_Widget {
 
 	function form($instance) {
 		
-		$defaults = array('title' => 'Videos: [SEARCHTERM]', 'language' => 'en', 'rows' => 5, 'new_tab' => true);
+		$defaults = array('title' => 'Videos: [SEARCHTERM]', 'category' => 'ALL', 'language' => 'en', 'rows' => 5, 'new_tab' => true);
 		$instance = wp_parse_args((array) $instance, $defaults);		
 
 		$title = esc_attr($instance['title']);
@@ -232,6 +322,24 @@ class TVBookmarkWidget extends WP_Widget {
 		echo 'value="'.$search_term.'" style="width:100%"/>';
 		echo '<span class="description">Note: One or more space-separated words (e.g. &quot;Apple&quot;, &quot;Steve Jobs&quot;), you can also separate with &quot;OR&quot; to ';
 		echo 'find videos with only one of the terms (e.g. &quot;iPod OR iPad OR Mac OR iTunes&quot;) </span>';
+		echo '</p>';
+
+		// Category
+		$cat_sel_box = $this->getCategorySelectBox($instance['category']);
+
+		echo '<p>';
+		echo '<label for="'.$this->get_field_id('category').'">Category:</label> ';
+		
+		if($cat_sel_box) {		
+			echo $cat_sel_box.'<br />';
+			echo '<span class="description">Note: For displaying videos about a general topic like &quot;News&quot;, &quot;Sports&quot; or &quot;Soccer&quot; choose ';
+			echo 'a category (e.g. &quot;Sports&quot;) or subcategory (e.g. &quot;Soccer&quot;) instead ';
+			echo 'of typing your topic in the search term box for better results. A search term can also be combined with a category (e.g. &quot;iPhone&quot; videos only from ';
+			echo '&quot;Technology&quot; category).</span>';
+		} else {
+			echo '<span style="color:red">The selectable categories could not be read from TVBookmark. Please try again after a couple of minutes. ';
+			echo 'Your previous category selection will be preserved!</span>';
+		}
 		echo '</p>';
 
 		// Whole episodes
