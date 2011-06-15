@@ -3,7 +3,7 @@ Contributors: tvbookmark
 Tags: WebTV, Videos, TV, Channels, Shows, Episodes, Series, Documentaries, News, ABC, CBS, FOX, MSNBC, CNN, Internetfernsehen, IPTV, ARD, ZDF, RTL, Sat1, Pro7, Sendungen, Fernsehen, Widget, Sidebar, Mediatheken
 Requires at least: 2.8
 Tested up to: 3.1.3
-Stable tag: 4.3
+Stable tag: 1.1
 
 A widget to display titles and links to the latest videos from TV channels and newssites (de/en) about a self-chosen topic in the sidebar.
 
